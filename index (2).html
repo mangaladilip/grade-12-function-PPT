@@ -1,0 +1,777 @@
+<!DOCType html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Functions – Interactive Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --purple: #724b9e;
+    --purple-light: #ede6f7;
+    --yellow: #e8d227;
+    --yellow-light: #fdf9d0;
+    --cream: #f2f1e8;
+    --white: #f9f9fa;
+    --dark: #232323;
+    --mid: #6b6b6b;
+    --green: #2d9e6b;
+    --green-light: #e6f7f0;
+    --teal: #2a8fa0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  /* ── 16:9 slide wrapper ── */
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--cream);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform-origin: top left;
+  }
+
+  /* ── Header bar ── */
+  .slide-header {
+    background: var(--purple);
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+
+  .slide-header .title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .slide-header .badge {
+    background: var(--yellow);
+    color: var(--dark);
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border-radius: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .slide-header h1 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+
+  /* Tab pills in header */
+  .tabs {
+    display: flex;
+    gap: 5px;
+  }
+
+  .tab {
+    padding: 5px 14px;
+    border-radius: 14px;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: rgba(255,255,255,0.75);
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+
+  .tab:hover { border-color: var(--yellow); color: var(--yellow); }
+
+  .tab.active {
+    background: var(--yellow);
+    color: var(--dark);
+    border-color: var(--yellow);
+  }
+
+  /* ── Main body ── */
+  .slide-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── Left: code panel ── */
+  .code-panel {
+    background: #1a1030;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #2a1f45;
+  }
+
+  .code-top {
+    background: #261848;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    color: #9080b8;
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  .code-content {
+    padding: 16px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.0rem;
+    line-height: 2.0;
+    color: #e2d9f3;
+    flex: 1;
+  }
+
+  .code-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border-radius: 3px;
+    transition: background 0.1s;
+  }
+
+  .line-num {
+    color: #4a3d6a;
+    min-width: 20px;
+    text-align: right;
+    user-select: none;
+    font-size: 0.82rem;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .kw      { color: #c792ea; }
+  .fn      { color: #82aaff; }
+  .param   { color: #ffcb6b; }
+  .default { color: #e8d227; }
+  .ret     { color: #f78c6c; }
+  .str     { color: #c3e88d; }
+  .call    { color: #89ddff; }
+  .comment { color: #4a5e6a; font-style: italic; }
+
+  .highlight-line {
+    background: rgba(232,210,39,0.16) !important;
+    border-left: 3px solid var(--yellow);
+    margin: 0 -16px;
+    padding: 0 16px 0 13px;
+    animation: pulse-line 0.55s ease forwards;
+  }
+
+  @keyframes pulse-line {
+    0%   { background: rgba(232,210,39,0.52); }
+    65%  { background: rgba(232,210,39,0.22); }
+    100% { background: rgba(232,210,39,0.16); }
+  }
+
+  /* ── Right: trace panel ── */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    overflow: hidden;
+  }
+
+  /* concept strip */
+  .concept-strip {
+    background: var(--purple-light);
+    border-bottom: 2px solid #d4c4f0;
+    padding: 10px 18px;
+    flex-shrink: 0;
+  }
+
+  .concept-strip h3 {
+    font-size: 1.2 rem;
+    font-weight: 700;
+    color: var(--purple);
+    margin-bottom: 3px;
+  }
+
+  .concept-strip p {
+    font-size: 1 rem;
+    color: var(--dark);
+    line-height: 1.45;
+  }
+
+  /* steps + memory in a row */
+  .trace-memory-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* steps column */
+  .steps-col {
+    padding: 12px 14px;
+    overflow-y: auto;
+    border-right: 1px solid #e8e5dd;
+  }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--mid);
+    text-transform: sentencecase;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
+  }
+
+  .steps { display: flex; flex-direction: column; gap: 6px; }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--cream);
+    border: 1.5px solid #e0ddd4;
+    opacity: 0.45;
+    transition: all 0.2s;
+  }
+
+  .step.active {
+    background: var(--yellow-light);
+    border-color: var(--yellow);
+    opacity: 1;
+    box-shadow: 0 2px 6px rgba(232,210,39,0.2);
+  }
+
+  .step.done {
+    opacity: 0.8;
+    background: var(--green-light);
+    border-color: #a8dcc5;
+  }
+
+  .step-num {
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--purple);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step.active .step-num { background: var(--yellow); color: var(--dark); }
+  .step.done  .step-num  { background: var(--green); }
+
+  .step-text {
+    font-size: 1 rem;
+    line-height: 1.45;
+    color: var(--dark);
+  }
+
+  .step-text strong { color: var(--purple); }
+  .step-text code {
+    font-family: 'DM Mono', monospace;
+    font-size: 1 rem;
+    background: rgba(114,75,158,0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* memory column */
+  .memory-col {
+    width: 220px;
+    padding: 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--cream);
+    border-left: 1px solid #e0ddd4;
+  }
+
+  .memory-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .memory-table th {
+    background: var(--purple);
+    color: #fff;
+    padding: 5px 9px;
+    text-align: left;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+
+  .memory-table td {
+    padding: 5px 9px;
+    border-bottom: 1px solid #e0ddd4;
+    color: var(--dark);
+    background: var(--white);
+  }
+
+  .mem-highlight td { background: var(--yellow-light) !important; font-weight: 600; }
+
+  /* output row */
+  .output-row {
+    background: #1a1030;
+    padding: 60px 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    border-top: 1px solid #2a1f45;
+  }
+
+  .output-label {
+    color: #6a5a8a;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.2rem;
+font-weight: 500;
+
+    flex-shrink: 0;
+  }
+
+  .output-value {
+    color: #c3e88d;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.25s;
+  }
+
+  .output-none { color: #4a3d6a; font-style: italic; }
+
+  /* controls row */
+  .controls-row {
+    padding: 10px 18px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-top: 1px solid #e8e5dd;
+    flex-shrink: 0;
+    background: var(--white);
+  }
+
+  .btn {
+    padding: 7px 20px;
+    border-radius: 6px;
+    border: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary { background: var(--purple); color: #fff; }
+  .btn-primary:hover { background: #5c3a80; }
+  .btn-primary:disabled { background: #bbb; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: var(--cream);
+    color: var(--dark);
+    border: 1.5px solid #ccc;
+  }
+  .btn-secondary:hover { border-color: var(--purple); color: var(--purple); }
+
+  /* ── Footer ── */
+  .slide-footer {
+    height: 26px;
+    background: var(--purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .slide-footer span {
+    font-size: 0.76rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="slide" id="slide">
+
+  <!-- HEADER -->
+  <div class="slide-header">
+    <div class="title-group">
+      <span class="badge" id="tab-badge">Type 1</span>
+      <h1 id="tab-title">Function with no parameter and no return value</h1>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('no-param')">No parameter, no return</button>
+      <button class="tab" onclick="switchTab('with-param')">Parameter, no return</button>
+      <button class="tab" onclick="switchTab('with-return')">Parameter + return</button>
+      <button class="tab" onclick="switchTab('default')">Default parameter</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="slide-body">
+
+    <!-- LEFT: code -->
+    <div class="code-panel">
+      <div class="code-top">
+        <span class="dot dot-r"></span>
+        <span class="dot dot-y"></span>
+        <span class="dot dot-g"></span>
+        <span style="margin-left:6px">main.py</span>
+      </div>
+      <div class="code-content" id="code-display"></div>
+      <div class="output-row">
+        <span class="output-label">Output →</span>
+        <span class="output-value output-none" id="output-display">—</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: trace -->
+    <div class="right-panel">
+      <div class="concept-strip" id="concept-box"></div>
+
+      <div class="trace-memory-row">
+        <div class="steps-col">
+          <div class="section-label">Step-by-step trace</div>
+          <div class="steps" id="steps-container"></div>
+        </div>
+        <div class="memory-col">
+          <div class="section-label">Memory</div>
+          <div id="memory-area"></div>
+        </div>
+      </div>
+
+      <div class="controls-row">
+        <button class="btn btn-primary" id="btn-next" onclick="nextStep()">▶ Next step</button>
+        <button class="btn btn-secondary" onclick="resetTrace()">↺ Reset</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="slide-footer">
+    <span>© CuriousEd.ai</span>
+  </div>
+
+</div>
+
+<script>
+// ── Scale slide to fit viewport ──────────────────────────────────────────────
+function scaleSlide() {
+  const slide = document.getElementById('slide');
+  const scaleX = window.innerWidth  / 1280;
+  const scaleY = window.innerHeight / 720;
+  const scale  = Math.min(scaleX, scaleY);
+  slide.style.transform = `scale(${scale})`;
+  // Centre it
+  const left = (window.innerWidth  - 1280 * scale) / 2;
+  const top  = (window.innerHeight - 720  * scale) / 2;
+  slide.style.position = 'absolute';
+  slide.style.left = left + 'px';
+  slide.style.top  = top  + 'px';
+}
+window.addEventListener('resize', scaleSlide);
+scaleSlide();
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+const TABS = {
+  'no-param': {
+    badge: 'Type 1',
+    title: 'Function with no parameter and no return value',
+    concept: {
+      heading: 'No parameter, no return',
+      text: 'The function does not receive any input and does not send any value back. It simply performs an action (here, printing a message) when called.'
+    },
+    code: [
+      { ln:1, html: `<span class="kw">def</span> <span class="fn">greet</span>():`, id:'def' },
+      { ln:2, html: `&nbsp;&nbsp;&nbsp;&nbsp;<span class="call">print</span>(<span class="str">"Hello, learner!"</span>)`, id:'body' },
+      { ln:3, html: ``, id:'blank' },
+      { ln:4, html: `<span class="fn">greet</span>()`, id:'call' },
+    ],
+    steps: [
+      { line:'def',  text: 'Python reads the <strong>function definition</strong> — instructions are stored, not run yet.' },
+      { line:'call', text: 'The <strong>function call</strong> <code>greet()</code> is reached — control jumps into the function.' },
+      { line:'body', text: 'Function body runs: <code>print("Hello, learner!")</code> executes.' },
+      { line:'call', text: 'Function ends. Control returns. <strong>No value is returned.</strong>' },
+    ],
+    memoryByStep: [
+      [['greet','function','defined']],
+      [['greet','function','']],
+      [['greet','function','']],
+      [['greet','function','']],
+    ],
+    outputs: ['—','—','Hello, learner!','Hello, learner!'],
+  },
+
+  'with-param': {
+    badge: 'Type 2',
+    title: 'Function with parameter, no return value',
+    concept: {
+      heading: 'With parameter, no return',
+      text: 'The function receives an input through a parameter. The argument passed during the call is assigned to the parameter. The function performs an action but does not send any value back.'
+    },
+    code: [
+      { ln:1, html: `<span class="kw">def</span> <span class="fn">showSquare</span>(<span class="param">n</span>):`, id:'def' },
+      { ln:2, html: `&nbsp;&nbsp;&nbsp;&nbsp;<span class="call">print</span>(<span class="param">n</span> * <span class="param">n</span>)`, id:'body' },
+      { ln:3, html: ``, id:'blank' },
+      { ln:4, html: `<span class="fn">showSquare</span>(<span class="str">5</span>)`, id:'call' },
+    ],
+    steps: [
+      { line:'def',  text: 'Function definition read. Parameter <strong>n</strong> is declared — no value yet.' },
+      { line:'call', text: 'Call <code>showSquare(5)</code> — argument <strong>5</strong> passed. Parameter <strong>n = 5</strong>.' },
+      { line:'body', text: 'Body runs: <code>n * n</code> → <code>5 × 5</code> → <strong>25</strong> is printed.' },
+      { line:'call', text: 'Function ends. <strong>n</strong> is destroyed (local scope). No value returned.' },
+    ],
+    memoryByStep: [
+      [['n','—','parameter']],
+      [['n','5','argument assigned']],
+      [['n','5','']],
+      [],
+    ],
+    outputs: ['—','—','25','25'],
+  },
+
+  'with-return': {
+    badge: 'Type 3',
+    title: 'Function with parameter and return value',
+    concept: {
+      heading: 'With parameter and return value',
+      text: 'The function receives inputs through parameters, processes them, and sends a result back to the caller using the <code>return</code> statement. The returned value can be stored in a variable.'
+    },
+    code: [
+      { ln:1, html: `<span class="kw">def</span> <span class="fn">add</span>(<span class="param">a</span>, <span class="param">b</span>):`, id:'def' },
+      { ln:2, html: `&nbsp;&nbsp;&nbsp;&nbsp;result = <span class="param">a</span> + <span class="param">b</span>`, id:'body1' },
+      { ln:3, html: `&nbsp;&nbsp;&nbsp;&nbsp;<span class="ret">return</span> result`, id:'ret' },
+      { ln:4, html: ``, id:'blank' },
+      { ln:5, html: `total = <span class="fn">add</span>(<span class="str">5</span>, <span class="str">7</span>)`, id:'call' },
+      { ln:6, html: `<span class="call">print</span>(total)`, id:'print' },
+    ],
+    steps: [
+      { line:'def',   text: 'Function definition read. Parameters <strong>a</strong> and <strong>b</strong> declared.' },
+      { line:'call',  text: 'Call <code>add(5, 7)</code> — <strong>a = 5</strong>, <strong>b = 7</strong>. Control enters the function.' },
+      { line:'body1', text: '<code>result = a + b</code> → <code>5 + 7</code> → <strong>result = 12</strong>.' },
+      { line:'ret',   text: '<code>return result</code> — value <strong>12</strong> sent back. <strong>total</strong> receives 12.' },
+      { line:'print', text: '<code>print(total)</code> → <strong>12</strong> is displayed.' },
+    ],
+    memoryByStep: [
+      [],
+      [['a','5','argument'],['b','7','argument']],
+      [['a','5',''],['b','7',''],['result','12','a + b']],
+      [['a','5',''],['b','7',''],['result','12',''],['total','12','returned']],
+      [['a','5',''],['b','7',''],['result','12',''],['total','12','']],
+    ],
+    outputs: ['—','—','—','—','12'],
+  },
+
+  'default': {
+    badge: 'Type 4',
+    title: 'Function with default parameter',
+    concept: {
+      heading: 'Default parameter',
+      text: 'A default value is assigned to a parameter in the function header. If no argument is passed, the default is used. If an argument is passed, it overrides the default.'
+    },
+    code: [
+      { ln:1, html: `<span class="kw">def</span> <span class="fn">showInterest</span>(<span class="param">principal</span>, <span class="param">rate</span>=<span class="default">5</span>):`, id:'def' },
+      { ln:2, html: `&nbsp;&nbsp;&nbsp;&nbsp;interest = (principal * rate) / <span class="str">100</span>`, id:'body' },
+      { ln:3, html: `&nbsp;&nbsp;&nbsp;&nbsp;<span class="call">print</span>(interest)`, id:'print' },
+      { ln:4, html: ``, id:'blank' },
+      { ln:5, html: `<span class="comment"># Call 1 — default rate used</span>`, id:'c1label' },
+      { ln:6, html: `<span class="fn">showInterest</span>(<span class="str">1000</span>)`, id:'call1' },
+      { ln:7, html: ``, id:'blank2' },
+      { ln:8, html: `<span class="comment"># Call 2 — rate overridden</span>`, id:'c2label' },
+      { ln:9, html: `<span class="fn">showInterest</span>(<span class="str">1000</span>, <span class="str">8</span>)`, id:'call2' },
+    ],
+    steps: [
+      { line:'def',   text: 'Function defined. <strong>principal</strong> has no default. <strong>rate</strong> defaults to <strong>5</strong>.' },
+      { line:'call1', text: 'Call 1: <code>showInterest(1000)</code> — one argument. <strong>principal = 1000</strong>, <strong>rate = 5</strong> (default).' },
+      { line:'body',  text: '<code>interest = (1000 × 5) / 100</code> → <strong>50.0</strong>.' },
+      { line:'print', text: '<code>print(50.0)</code> → output: <strong>50.0</strong>. Call 1 done.' },
+      { line:'call2', text: 'Call 2: <code>showInterest(1000, 8)</code> — two arguments. <strong>rate = 8</strong> overrides default.' },
+      { line:'body',  text: '<code>interest = (1000 × 8) / 100</code> → <strong>80.0</strong>.' },
+      { line:'print', text: '<code>print(80.0)</code> → output: <strong>80.0</strong>. Call 2 done.' },
+    ],
+    memoryByStep: [
+      [['principal','—',''],['rate','5','default']],
+      [['principal','1000','arg'],['rate','5','default used']],
+      [['principal','1000',''],['rate','5',''],['interest','50.0','']],
+      [['principal','1000',''],['rate','5',''],['interest','50.0','']],
+      [['principal','1000','new call'],['rate','8','overridden']],
+      [['principal','1000',''],['rate','8',''],['interest','80.0','']],
+      [['principal','1000',''],['rate','8',''],['interest','80.0','']],
+    ],
+    outputs: ['—','—','—','50.0','50.0','—','80.0'],
+  },
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentTab = 'no-param';
+let currentStep = -1;
+let currentHighlightId = null;
+
+// ── Tab switch ────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', Object.keys(TABS)[i] === tab);
+  });
+  resetTrace();
+}
+
+// ── Render code (full rebuild, only on tab switch / reset) ────────────────────
+function renderCode(highlightId) {
+  currentHighlightId = highlightId;
+  const data = TABS[currentTab];
+  let html = '';
+  data.code.forEach(line => {
+    const hl = line.id === highlightId ? ' highlight-line' : '';
+    if (line.html === '') {
+      html += `<div class="code-line" data-line-id="${line.id}" style="height:9px"></div>`;
+    } else {
+      html += `<div class="code-line${hl}" data-line-id="${line.id}"><span class="line-num">${line.ln}</span><span>${line.html}</span></div>`;
+    }
+  });
+  document.getElementById('code-display').innerHTML = html;
+}
+
+// ── Update highlight only (no rebuild) ────────────────────────────────────────
+function updateCodeHighlight(newId) {
+  currentHighlightId = newId;
+  TABS[currentTab].code.forEach(line => {
+    const el = document.querySelector(`[data-line-id="${line.id}"]`);
+    if (!el) return;
+    if (line.id === newId) {
+      el.classList.remove('highlight-line');
+      void el.offsetWidth;
+      el.classList.add('highlight-line');
+    } else {
+      el.classList.remove('highlight-line');
+    }
+  });
+}
+
+// ── Render concept strip ───────────────────────────────────────────────────────
+function renderConcept() {
+  const c = TABS[currentTab].concept;
+  document.getElementById('concept-box').innerHTML =
+    `<h3>${c.heading}</h3><p>${c.text}</p>`;
+}
+
+// ── Render step list (full rebuild, only on tab switch / reset) ───────────────
+function renderSteps() {
+  const data = TABS[currentTab];
+  document.getElementById('steps-container').innerHTML = data.steps.map((s, i) => `
+    <div class="step" id="step-${i}">
+      <div class="step-num">${i + 1}</div>
+      <div class="step-text">${s.text}</div>
+    </div>
+  `).join('');
+}
+
+// ── Update step classes (no rebuild) ─────────────────────────────────────────
+function updateStepClasses() {
+  TABS[currentTab].steps.forEach((_, i) => {
+    const el = document.getElementById(`step-${i}`);
+    if (!el) return;
+    const num = el.querySelector('.step-num');
+    if (i < currentStep)      { el.className = 'step done';   num.textContent = '✓'; }
+    else if (i === currentStep){ el.className = 'step active'; num.textContent = i + 1; el.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+    else                       { el.className = 'step';        num.textContent = i + 1; }
+  });
+}
+
+// ── Render memory table ───────────────────────────────────────────────────────
+function renderMemory(idx) {
+  const rows = (TABS[currentTab].memoryByStep || [])[idx];
+  const area = document.getElementById('memory-area');
+  if (!rows || rows.length === 0) { area.innerHTML = '<span style="font-size:0.62rem;color:var(--mid)">No variables yet</span>'; return; }
+  let html = `<table class="memory-table"><thead><tr><th>Var</th><th>Value</th></tr></thead><tbody>`;
+  rows.forEach((r, i) => {
+    html += `<tr class="${i === rows.length - 1 ? 'mem-highlight' : ''}"><td>${r[0]}</td><td>${r[1]}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  area.innerHTML = html;
+}
+
+// ── Render header ─────────────────────────────────────────────────────────────
+function renderHeader() {
+  const d = TABS[currentTab];
+  document.getElementById('tab-badge').textContent = d.badge;
+  document.getElementById('tab-title').textContent = d.title;
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetTrace() {
+  currentStep = -1;
+  currentHighlightId = null;
+  renderHeader();
+  renderCode(null);
+  renderConcept();
+  renderSteps();
+  renderMemory(0);
+  const outEl = document.getElementById('output-display');
+  outEl.textContent = '—';
+  outEl.className = 'output-value output-none';
+  const btn = document.getElementById('btn-next');
+  btn.disabled = false;
+  btn.textContent = '▶ Next step';
+}
+
+// ── Next step ─────────────────────────────────────────────────────────────────
+function nextStep() {
+  const data = TABS[currentTab];
+  if (currentStep >= data.steps.length - 1) return;
+  currentStep++;
+
+  updateCodeHighlight(data.steps[currentStep].line);
+  updateStepClasses();
+  renderMemory(currentStep);
+
+  const out = data.outputs[currentStep];
+  const outEl = document.getElementById('output-display');
+  outEl.textContent = out === '—' ? '—' : out;
+  outEl.className   = out === '—' ? 'output-value output-none' : 'output-value';
+
+  if (currentStep === data.steps.length - 1) {
+    document.getElementById('btn-next').disabled = true;
+    document.getElementById('btn-next').textContent = '✓ Done';
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+resetTrace();
+</script>
+</body>
+</html>
